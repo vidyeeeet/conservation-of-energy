@@ -1,4 +1,4 @@
-# Conservation of Energy — Neural World Model
+# Conservation of Energy — NN
 
 Link : https://vidyeeeet.github.io/conservation-of-energy/
 
