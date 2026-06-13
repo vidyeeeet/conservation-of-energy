@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Conservation of Energy — Spring Mass System</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #0f0f13;
+    --surface: #16161d;
+    --border: #2a2a35;
+    --true-color: #4a9eff;
+    --model-color: #ff6b6b;
+    --energy-true: #4affb0;
+    --energy-model: #ffb04a;
+    --text: #e8e8f0;
+    --muted: #6b6b80;
+    --accent: #7c6af7;
+    --disabled: #2a2a35;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  header {
+    padding: 2.5rem 2rem 1.5rem;
+    max-width: 960px;
+    margin: 0 auto;
+  }
+
+  .eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 0.75rem;
+  }
+
+  h1 {
+    font-size: clamp(1.6rem, 4vw, 2.4rem);
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.75rem;
+  }
+
+  .subtitle {
+    color: var(--muted);
+    font-size: 0.9rem;
+    line-height: 1.7;
+    max-width: 580px;
+  }
+
+  .legend {
+    display: flex;
+    gap: 1.5rem;
+    margin-top: 1.25rem;
+    flex-wrap: wrap;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.78rem;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--muted);
+  }
+
+  .legend-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  main {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0 2rem 4rem;
+  }
+
+  /* Controls ABOVE animation */
+  .controls {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+    transition: opacity 0.2s;
+  }
+
+  .controls.locked {
+    opacity: 0.4;
+    pointer-events: none;
+  }
+
+  .model-input-row {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .control-label-text {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  input[type=text] {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.3rem 0.6rem;
+    flex: 1;
+  }
+
+  input[type=text]:focus { outline: none; border-color: var(--accent); }
+
+  .model-load-btn {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    padding: 0.3rem 0.8rem;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .model-load-btn:hover { border-color: var(--accent); }
+
+  .control-group { display: flex; flex-direction: column; gap: 0.4rem; }
+
+  .control-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .control-value { color: var(--text); }
+
+  input[type=range] {
+    width: 100%;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+
+  /* Animation panels */
+  .canvas-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .canvas-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .canvas-label {
+    position: absolute;
+    top: 0.6rem;
+    left: 0.75rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    z-index: 2;
+  }
+
+  canvas { display: block; width: 100%; }
+
+  .energy-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+    margin-bottom: 0.5rem;
+  }
+
+  /* Energy label sits outside canvas to avoid overlap */
+  .energy-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 0.75rem 0;
+  }
+
+  .energy-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .energy-legend {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .energy-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.62rem;
+    color: var(--muted);
+  }
+
+  .energy-legend-line {
+    width: 16px;
+    height: 2px;
+    border-radius: 1px;
+  }
+
+  /* Status bar between animation and buttons */
+  .status-bar {
+    display: flex;
+    gap: 1.5rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--muted);
+    margin: 0.75rem 0;
+    flex-wrap: wrap;
+  }
+
+  .status-item span { color: var(--text); }
+
+  /* Buttons BELOW animation */
+  .btn-row {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+  }
+
+  button {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    padding: 0.5rem 1.2rem;
+    border-radius: 5px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    transition: border-color 0.15s, background 0.15s;
+  }
+
+  button:hover { border-color: var(--accent); background: #1e1e2a; }
+  button.primary { border-color: var(--accent); background: #2a1f6a; }
+  button.primary:hover { background: #3a2f7a; }
+  button:disabled { opacity: 0.35; cursor: not-allowed; }
+  button:disabled:hover { border-color: var(--border); background: var(--surface); }
+
+  .finding {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+  }
+
+  .finding-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+  }
+
+  .finding p { font-size: 0.875rem; color: var(--muted); line-height: 1.65; }
+  .finding p + p { margin-top: 0.5rem; }
+
+  @media (max-width: 600px) {
+    .canvas-row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">Spring Mass System · Neural Physics</div>
+  <h1>Can a small model learn<br>conservation of energy?</h1>
+  <p class="subtitle">
+    We trained a tiny neural network on a frictionless spring mass system. No friction, no damping, no physics equations given. It just saw position and velocity over time and had to predict what comes next. The curious question was whether something like energy conservation would quietly show up on its own, or whether the model would drift into physically impossible states. Adjust the parameters, hit run, and see what happens.
+  </p>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:var(--true-color)"></div>True physics</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--model-color)"></div>Trained model</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--energy-true)"></div>True energy</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--energy-model)"></div>Model energy</div>
+  </div>
+</header>
+
+<main>
+
+  <!-- CONTROLS ABOVE -->
+  <div class="controls" id="controls">
+    <div class="model-input-row">
+      <span class="control-label-text">Model file</span>
+      <input type="text" id="modelInput" value="models/model_latest.json" placeholder="models/model_latest.json">
+      <button class="model-load-btn" id="loadModelBtn">Load</button>
+    </div>
+    <div class="control-group">
+      <div class="control-label">Spring stiffness k <span class="control-value" id="kVal">1.0</span></div>
+      <input type="range" id="kSlider" min="0.3" max="3.0" step="0.1" value="1.0">
+    </div>
+    <div class="control-group">
+      <div class="control-label">Mass m <span class="control-value" id="mVal">1.0</span></div>
+      <input type="range" id="mSlider" min="0.3" max="3.0" step="0.1" value="1.0">
+    </div>
+    <div class="control-group">
+      <div class="control-label">Initial position x&#x2080; <span class="control-value" id="x0Val">1.00</span></div>
+      <input type="range" id="x0Slider" min="-1.0" max="1.0" step="0.05" value="1.0">
+    </div>
+    <div class="control-group">
+      <div class="control-label">Initial velocity v&#x2080; <span class="control-value" id="v0Val">0.00</span></div>
+      <input type="range" id="v0Slider" min="-1.5" max="1.5" step="0.05" value="0.0">
+    </div>
+  </div>
+
+  <!-- ANIMATION -->
+  <div class="canvas-row">
+    <div class="canvas-wrap">
+      <div class="canvas-label">True Physics</div>
+      <canvas id="trueCanvas" height="320"></canvas>
+    </div>
+    <div class="canvas-wrap">
+      <div class="canvas-label">Trained Model</div>
+      <canvas id="modelCanvas" height="320"></canvas>
+    </div>
+  </div>
+
+  <div class="energy-wrap">
+    <div class="energy-header">
+      <span class="energy-title">Energy over time</span>
+      <div class="energy-legend">
+        <div class="energy-legend-item">
+          <div class="energy-legend-line" style="background:var(--energy-true)"></div>true E
+        </div>
+        <div class="energy-legend-item">
+          <div class="energy-legend-line" style="background:var(--energy-model)"></div>model E
+        </div>
+      </div>
+    </div>
+    <canvas id="energyCanvas" height="130"></canvas>
+  </div>
+
+  <!-- STATUS + BUTTONS BELOW -->
+  <div class="status-bar">
+    <div class="status-item">Frame <span id="frameCount">0</span></div>
+    <div class="status-item">True E <span id="trueEnergy">0.5000</span></div>
+    <div class="status-item">Model E <span id="modelEnergy">0.5000</span></div>
+    <div class="status-item">Drift <span id="energyDrift">0.0000</span></div>
+  </div>
+
+  <div class="btn-row">
+    <button class="primary" id="startBtn">&#9654; Start</button>
+    <button id="pauseBtn" disabled>&#9646;&#9646; Pause</button>
+    <button id="resetBtn" disabled>&#8635; Reset</button>
+  </div>
+
+  <div class="finding">
+    <div class="finding-title">What to look for</div>
+    <p>When k is set to 1.0 (what the model trained on), it tracks the true physics closely and energy stays roughly flat on both lines. Try dragging k above 2.0. The model never saw a stiffer spring, so it starts making physically impossible predictions and the energy lines diverge.</p>
+    <p>This reveals something specific: the model learned the statistical patterns of one spring, not the underlying law. It conserves energy for conditions it recognises, and breaks down everywhere else.</p>
+  </div>
+
+</main>
+
+<script>
+// ── Model loading ────────────────────────────────────────────────────────────
+let MODEL = null;
+
+async function loadModel(url) {
+  try {
+    const res = await fetch(url);
+    MODEL = await res.json();
+    console.log('Loaded:', MODEL.timestamp || url);
+  } catch(e) {
+    MODEL = null;
+    console.warn('Could not load model, using physics fallback');
+  }
+}
+
+// ── Forward pass: 2→64→1, Tanh ─────────────────────────────────────────────
+function matVecAdd(W, b, x) {
+  return W.map((row, i) => row.reduce((s, w, j) => s + w * x[j], 0) + b[i]);
+}
+
+function modelPredict(x, v) {
+  if (!MODEL) {
+    const k = parseFloat(document.getElementById('kSlider').value);
+    const m = parseFloat(document.getElementById('mSlider').value);
+    const dt = 0.05;
+    const a = -(k / m) * x;
+    return x + v * dt + 0.5 * a * dt * dt;
+  }
+  const W = MODEL.weights;
+  let h = matVecAdd(W['0.weight'], W['0.bias'], [x, v]).map(Math.tanh);
+  return matVecAdd(W['2.weight'], W['2.bias'], h)[0];
+}
+
+// ── Physics ──────────────────────────────────────────────────────────────────
+function physicsStep(x, v, k, m, dt) {
+  const a = -(k / m) * x;
+  const xNew = x + v * dt + 0.5 * a * dt * dt;
+  const aNew = -(k / m) * xNew;
+  return { x: xNew, v: v + 0.5 * (a + aNew) * dt };
+}
+
+function energy(x, v, k, m) {
+  return 0.5 * m * v * v + 0.5 * k * x * x;
+}
+
+// ── State ────────────────────────────────────────────────────────────────────
+let state = {
+  trueX: 1, trueV: 0, modelX: 1, modelV: 0,
+  k: 1, m: 1, dt: 0.05,
+  x0: 1, v0: 0,
+  frame: 0, running: false,
+  trueTrail: [], modelTrail: [],
+  trueEnergyHistory: [], modelEnergyHistory: [],
+  maxTrail: 350, maxEnergy: 550,
+};
+
+function resetState() {
+  state.k  = parseFloat(document.getElementById('kSlider').value);
+  state.m  = parseFloat(document.getElementById('mSlider').value);
+  state.x0 = parseFloat(document.getElementById('x0Slider').value);
+  state.v0 = parseFloat(document.getElementById('v0Slider').value);
+  state.trueX = state.x0; state.trueV = state.v0;
+  state.modelX = state.x0; state.modelV = state.v0;
+  state.frame = 0;
+  state.trueTrail = []; state.modelTrail = [];
+  state.trueEnergyHistory = []; state.modelEnergyHistory = [];
+  const e0 = energy(state.x0, state.v0, state.k, state.m);
+  document.getElementById('trueEnergy').textContent = e0.toFixed(4);
+  document.getElementById('modelEnergy').textContent = e0.toFixed(4);
+  document.getElementById('energyDrift').textContent = '0.0000';
+  document.getElementById('frameCount').textContent = '0';
+}
+
+// ── Canvas setup ─────────────────────────────────────────────────────────────
+const trueCanvas  = document.getElementById('trueCanvas');
+const modelCanvas = document.getElementById('modelCanvas');
+const energyCanvas = document.getElementById('energyCanvas');
+const tCtx = trueCanvas.getContext('2d');
+const mCtx = modelCanvas.getContext('2d');
+const eCtx = energyCanvas.getContext('2d');
+
+function resizeCanvases() {
+  const DPR = window.devicePixelRatio || 1;
+  [trueCanvas, modelCanvas].forEach(c => {
+    c.width  = c.offsetWidth * DPR;
+    c.height = 320 * DPR;
+  });
+  energyCanvas.width  = energyCanvas.offsetWidth * DPR;
+  energyCanvas.height = 130 * DPR;
+}
+window.addEventListener('resize', resizeCanvases);
+resizeCanvases();
+
+// ── Drawing ──────────────────────────────────────────────────────────────────
+function drawSpring(ctx, W, H, x, color, trail) {
+  ctx.clearRect(0, 0, W, H);
+
+  // Grid
+  ctx.strokeStyle = '#1a1a24'; ctx.lineWidth = 1;
+  for (let i = 1; i < 4; i++) {
+    ctx.beginPath(); ctx.moveTo(0, H * i / 4); ctx.lineTo(W, H * i / 4); ctx.stroke();
+  }
+
+  // Equilibrium dashed line
+  ctx.strokeStyle = '#252530'; ctx.lineWidth = 1.5;
+  ctx.setLineDash([5, 5]);
+  ctx.beginPath(); ctx.moveTo(W * 0.12, H * 0.5); ctx.lineTo(W * 0.88, H * 0.5); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Trail
+  if (trail.length > 1) {
+    const trailX0 = W * 0.52, trailW = W * 0.44;
+    ctx.beginPath();
+    ctx.strokeStyle = color + '40'; ctx.lineWidth = 1.5;
+    trail.forEach((y, i) => {
+      const tx = trailX0 + (i / state.maxTrail) * trailW;
+      const ty = H * 0.5 - y * H * 0.37;
+      i === 0 ? ctx.moveTo(tx, ty) : ctx.lineTo(tx, ty);
+    });
+    ctx.stroke();
+
+    const recent = trail.slice(-80);
+    ctx.beginPath();
+    ctx.strokeStyle = color + 'bb'; ctx.lineWidth = 2;
+    recent.forEach((y, i) => {
+      const tx = trailX0 + ((trail.length - recent.length + i) / state.maxTrail) * trailW;
+      const ty = H * 0.5 - y * H * 0.37;
+      i === 0 ? ctx.moveTo(tx, ty) : ctx.lineTo(tx, ty);
+    });
+    ctx.stroke();
+  }
+
+  // Anchor bracket
+  const anchorX = W * 0.28, anchorY = H * 0.07;
+  ctx.fillStyle = '#2e2e42';
+  ctx.fillRect(anchorX - 20, anchorY - 5, 40, 10);
+  ctx.strokeStyle = '#44445a'; ctx.lineWidth = 1;
+  ctx.strokeRect(anchorX - 20, anchorY - 5, 40, 10);
+
+  // Mass Y
+  const massX = anchorX;
+  const massY = H * 0.5 - x * H * 0.37;
+
+  // Spring zigzag
+  const sTop = anchorY + 5, sBot = massY - 13;
+  const sLen = sBot - sTop, coils = 9, amp = 9;
+  ctx.beginPath();
+  ctx.strokeStyle = color + '88'; ctx.lineWidth = 1.5;
+  ctx.moveTo(massX, sTop);
+  for (let i = 0; i <= coils * 2; i++) {
+    const t = i / (coils * 2);
+    ctx.lineTo(massX + (i % 2 === 0 ? -amp : amp), sTop + t * sLen);
+  }
+  ctx.lineTo(massX, sBot);
+  ctx.stroke();
+
+  // Glow
+  const grd = ctx.createRadialGradient(massX, massY, 0, massX, massY, 18);
+  grd.addColorStop(0, color + 'ff');
+  grd.addColorStop(0.5, color + '88');
+  grd.addColorStop(1, color + '00');
+  ctx.beginPath(); ctx.arc(massX, massY, 18, 0, Math.PI * 2);
+  ctx.fillStyle = grd; ctx.fill();
+
+  ctx.beginPath(); ctx.arc(massX, massY, 9, 0, Math.PI * 2);
+  ctx.fillStyle = color; ctx.fill();
+
+  // Velocity arrow
+  const vel = (color === '#4a9eff') ? state.trueV : state.modelV;
+  const arrowLen = -vel * 28;
+  if (Math.abs(arrowLen) > 4) {
+    ctx.beginPath();
+    ctx.strokeStyle = color + 'aa'; ctx.lineWidth = 2;
+    ctx.moveTo(massX + 15, massY);
+    ctx.lineTo(massX + 15, massY + arrowLen);
+    ctx.stroke();
+    const d = arrowLen < 0 ? -1 : 1;
+    ctx.beginPath();
+    ctx.fillStyle = color + 'aa';
+    ctx.moveTo(massX + 15, massY + arrowLen);
+    ctx.lineTo(massX + 11, massY + arrowLen - d * 6);
+    ctx.lineTo(massX + 19, massY + arrowLen - d * 6);
+    ctx.fill();
+  }
+}
+
+function drawEnergy(ctx, W, H) {
+  ctx.clearRect(0, 0, W, H);
+  const pad = { l: 35, r: 12, t: 10, b: 12 };
+  const pW = W - pad.l - pad.r, pH = H - pad.t - pad.b;
+
+  ctx.fillStyle = '#111119';
+  ctx.fillRect(pad.l, pad.t, pW, pH);
+
+  ctx.strokeStyle = '#1a1a26'; ctx.lineWidth = 1;
+  for (let i = 0; i <= 3; i++) {
+    const y = pad.t + (i / 3) * pH;
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(pad.l + pW, y); ctx.stroke();
+  }
+
+  ctx.fillStyle = '#44445a';
+  ctx.font = `${8 * (window.devicePixelRatio||1)}px JetBrains Mono`;
+  ctx.fillText('E', 6, pad.t + pH * 0.5 + 4);
+
+  const allE = [...state.trueEnergyHistory, ...state.modelEnergyHistory];
+  const maxE = allE.length ? Math.max(...allE) * 1.3 : 1;
+  const maxLen = state.maxEnergy;
+
+  function plotLine(hist, color) {
+    if (hist.length < 2) return;
+    ctx.beginPath(); ctx.strokeStyle = color; ctx.lineWidth = 1.5;
+    hist.forEach((e, i) => {
+      const px = pad.l + (i / maxLen) * pW;
+      const py = pad.t + pH - (e / maxE) * pH;
+      i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+    });
+    ctx.stroke();
+  }
+
+  plotLine(state.trueEnergyHistory, '#4affb0');
+  plotLine(state.modelEnergyHistory, '#ffb04a');
+}
+
+// ── Simulation step ──────────────────────────────────────────────────────────
+function step() {
+  const { k, m, dt } = state;
+  const next = physicsStep(state.trueX, state.trueV, k, m, dt);
+  state.trueX = next.x; state.trueV = next.v;
+
+  const xPred = modelPredict(state.modelX, state.modelV);
+  const mNext = physicsStep(state.modelX, state.modelV, 1.0, 1.0, dt);
+  state.modelV = mNext.v;
+  state.modelX = xPred;
+
+  state.trueTrail.push(state.trueX);
+  state.modelTrail.push(state.modelX);
+  if (state.trueTrail.length > state.maxTrail) state.trueTrail.shift();
+  if (state.modelTrail.length > state.maxTrail) state.modelTrail.shift();
+
+  const eTrue  = energy(state.trueX, state.trueV, k, m);
+  const eModel = energy(state.modelX, state.modelV, k, m);
+  state.trueEnergyHistory.push(eTrue);
+  state.modelEnergyHistory.push(eModel);
+  if (state.trueEnergyHistory.length > state.maxEnergy) state.trueEnergyHistory.shift();
+  if (state.modelEnergyHistory.length > state.maxEnergy) state.modelEnergyHistory.shift();
+
+  state.frame++;
+  document.getElementById('frameCount').textContent = state.frame;
+  document.getElementById('trueEnergy').textContent  = eTrue.toFixed(4);
+  document.getElementById('modelEnergy').textContent = eModel.toFixed(4);
+  document.getElementById('energyDrift').textContent = Math.abs(eTrue - eModel).toFixed(4);
+}
+
+function render() {
+  drawSpring(tCtx, trueCanvas.width,  trueCanvas.height,  state.trueX,  '#4a9eff', state.trueTrail);
+  drawSpring(mCtx, modelCanvas.width, modelCanvas.height, state.modelX, '#ff6b6b', state.modelTrail);
+  drawEnergy(eCtx, energyCanvas.width, energyCanvas.height);
+}
+
+// ── Loop ─────────────────────────────────────────────────────────────────────
+let lastTime = 0;
+function loop(ts) {
+  if (state.running && ts - lastTime > 20) {
+    step();
+    lastTime = ts;
+  }
+  render();
+  requestAnimationFrame(loop);
+}
+
+// ── UI ────────────────────────────────────────────────────────────────────────
+function lockControls(locked) {
+  const c = document.getElementById('controls');
+  if (locked) c.classList.add('locked');
+  else c.classList.remove('locked');
+}
+
+document.getElementById('kSlider').addEventListener('input', e => {
+  document.getElementById('kVal').textContent = parseFloat(e.target.value).toFixed(1);
+});
+document.getElementById('mSlider').addEventListener('input', e => {
+  document.getElementById('mVal').textContent = parseFloat(e.target.value).toFixed(1);
+});
+document.getElementById('x0Slider').addEventListener('input', e => {
+  document.getElementById('x0Val').textContent = parseFloat(e.target.value).toFixed(2);
+});
+document.getElementById('v0Slider').addEventListener('input', e => {
+  document.getElementById('v0Val').textContent = parseFloat(e.target.value).toFixed(2);
+});
+
+document.getElementById('loadModelBtn').addEventListener('click', async () => {
+  const path = document.getElementById('modelInput').value.trim();
+  await loadModel(path);
+});
+
+document.getElementById('startBtn').addEventListener('click', async () => {
+  resetState();
+  state.running = true;
+  lockControls(true);
+  document.getElementById('startBtn').disabled = true;
+  document.getElementById('pauseBtn').disabled = false;
+  document.getElementById('resetBtn').disabled = false;
+});
+
+document.getElementById('pauseBtn').addEventListener('click', () => {
+  state.running = !state.running;
+  document.getElementById('pauseBtn').textContent = state.running ? '\u23F8 Pause' : '\u25B6 Resume';
+});
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+  state.running = false;
+  resetState();
+  lockControls(false);
+  document.getElementById('startBtn').disabled = false;
+  document.getElementById('pauseBtn').disabled = true;
+  document.getElementById('pauseBtn').textContent = '\u23F8 Pause';
+  document.getElementById('resetBtn').disabled = true;
+});
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+(async () => {
+  await loadModel('./models/model_latest.json');
+  resetState();
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
